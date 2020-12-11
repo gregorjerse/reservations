@@ -386,21 +386,20 @@ class ReservableFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         # Filter by kwargs
         if 'reservable_set_slug' in view.kwargs:
-            queryset = queryset.filter(type=view.kwargs['reservable_type'])
-        if 'reservable_type' in view.kwargs:
             queryset = queryset.filter(
                 reservableset_set__slug=view.kwargs['reservable_set_slug']
             )
 
         # parse arguments from URL
-        resource_slugs = request.GET.getlist('resource', [])
-        resource_values = request.GET.getlist('value', [])
-        resource_type = request.GET.get('type', 'classroom')
-
+        if 'type' in request.GET:
+            queryset = queryset.filter(type__in=request.GET.getlist('type'))
+        elif 'reservable_type' in view.kwargs:
+            queryset = queryset.filter(type=view.kwargs['reservable_type'])
         if len(resource_slugs) != len(resource_values):
             return queryset.none()
 
-        queryset = queryset.filter(type=resource_type)
+        resource_slugs = request.GET.getlist('resource', [])
+        resource_values = request.GET.getlist('value', [])
         for resource_slug, value in zip(resource_slugs, resource_values):
             queryset = queryset.filter(
                 nresources__resource__slug=resource_slug,
